@@ -13,9 +13,33 @@ The below README has been edited from watchfulip/tp-link-decrypt and the origina
 
 2.  Run ./extract_keys.sh  to extract RSA/DES keys from TP-Link Firmware we download from vendor
 
+    Each key comes from its own multi-megabyte vendor download, so you can ask for
+    only the ones your image format needs:
+
+        ./extract_keys.sh --keys rsa1        # router images with "fw-type:" in the header
+        ./extract_keys.sh --keys rsa0        # Tapo cameras
+        ./extract_keys.sh --keys des         # Omada / TPLink switches
+
+    Keys you skip become clearly-marked stub headers so `make` still links; the
+    resulting binary then handles only the formats whose keys you extracted.
+    Runs non-interactively; pass --verbose to see binwalk's output.
+
 3.  Run `make` or `nix build` (if you're using `nix build` you need to `git add include` first so the files are visible. TODO #5 to add the include files to the Nix store directly).
 
 Decrypt with bin/tp-link-decrypt <fw file>
+
+4.  To unpack the decrypted image, `tools/extract_rootfs.py` carves the UBI container
+    by magic and unpacks its volumes (`pip install ubi_reader PySquashfsImage`):
+
+        python3 tools/extract_rootfs.py <fw file>.dec -o rootfs
+
+    binwalk does not reliably locate UBI in these images - on the Archer AX21 V5.46
+    decrypted output it reports no signatures at all, though a volume table starts at
+    0x1356. The script also renames paths that collide on case-insensitive
+    filesystems (macOS, Windows) instead of aborting half way.
+
+See **docs/cloud-router-images.md** for a full worked example on an Archer AX21 V5.46,
+including the macOS fixes and hashes to reproduce the result.
 
 If you found this tool useful, feel free to let me or WatchfulIP watchfulip@protonmail.com know :)
 
